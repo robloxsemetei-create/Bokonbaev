@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bokonbaev Messenger</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f0f10',
+                        darkCard: '#1c1c1e',
+                        darkHeader: '#161618',
+                        darkBorder: '#2c2c2e',
+                        darkInput: '#262628',
+                        darkBubbleSent: '#2b313e',
+                        darkBubbleRecv: '#1e1e22',
+                        lightBg: '#f2f2f7',
+                        lightCard: '#ffffff',
+                        lightHeader: '#f8f8f8',
+                        lightBorder: '#e5e5ea',
+                        lightInput: '#eef0f3',
+                        lightBubbleSent: '#dcf8c6',
+                        lightBubbleRecv: '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.3);
+            border-radius: 10px;
+        }
+
+        .chat-bg-pattern-dark {
+            background-color: #0b0b0c;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+
+        .nav-active {
+            background-color: #2c2c2e !important;
+            color: #ffffff !important;
+        }
+
+        html:not(.dark) .nav-active {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+
+        /* Prevent system long-press context menu on mobile */
+        .msg-bubble-target {
+            -webkit-touch-callout: none;
+        }
+    </style>
+</head>
+<body class="bg-darkBg dark:bg-darkBg bg-lightBg text-gray-900 dark:text-gray-100 h-screen w-screen overflow-hidden flex flex-col antialiased transition-colors duration-200">
+
+    <!-- AUTH MODAL -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-darkCard dark:bg-darkCard bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-darkBorder dark:border-darkBorder border-lightBorder">
+            
+            <div class="p-6 text-center border-b border-darkBorder dark:border-darkBorder border-lightBorder bg-darkHeader dark:bg-darkHeader bg-lightHeader">
+                <div class="w-16 h-16 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl font-bold shadow-md">
+                    B
+                </div>
+                <h2 class="text-2xl font-bold tracking-wide dark:text-white text-black">Bokonbaev</h2>
+                <p class="text-xs text-gray-400 mt-1">Мессенджер для общения</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-darkBorder dark:border-darkBorder border-lightBorder bg-darkHeader/50 dark:bg-darkHeader/50 bg-lightHeader">
+                <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 py-3 text-sm font-semibold dark:text-white text-black border-b-2 border-black dark:border-white transition">Вход</button>
+                <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="flex-1 py-3 text-sm font-semibold text-gray-400 hover:text-black dark:hover:text-white transition">Регистрация</button>
+            </div>
+
+            <!-- Forms -->
+            <div class="p-6 overflow-y-auto max-h-[70vh]">
+                <!-- LOGIN FORM -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Имя пользователя или Логин</label>
+                        <input type="text" id="loginUsername" required placeholder="Введите ваш логин или имя" class="w-full px-4 py-3 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Пароль</label>
+                        <input type="password" id="loginPassword" required placeholder="Введите ваш пароль" class="w-full px-4 py-3 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 font-bold rounded-2xl shadow-md transition active:scale-[0.98]">
+                        Войти
+                    </button>
+                </form>
+
+                <!-- REGISTER FORM -->
+                <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Имя и Фамилия</label>
+                        <input type="text" id="regFullName" required placeholder="Введите имя и фамилию" class="w-full px-4 py-2.5 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Логин (@username)</label>
+                        <input type="text" id="regUsername" required placeholder="Придумайте логин" class="w-full px-4 py-2.5 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Номер телефона</label>
+                        <input type="tel" id="regPhone" value="+996 " oninput="formatPhoneInput(this)" placeholder="+996 555 123 456" class="w-full px-4 py-2.5 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Загрузить аватарку</label>
+                        <input type="file" id="regAvatarInput" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-darkBorder file:text-white hover:file:bg-gray-600 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Пароль</label>
+                        <input type="password" id="regPassword" required placeholder="Придумайте пароль" class="w-full px-4 py-2.5 rounded-2xl bg-darkInput dark:bg-darkInput bg-lightInput text-black dark:text-white border border-darkBorder dark:border-darkBorder border-lightBorder focus:outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 font-bold rounded-2xl shadow-md transition active:scale-[0.98]">
+                        Зарегистрироваться
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="flex h-full w-full overflow-hidden relative">
+
+        <!-- LEFT / MAIN PANEL (CHATS LIST & TABS) -->
+        <div id="mainPanel" class="w-full md:w-96 bg-lightBg dark:bg-darkBg border-r border-lightBorder dark:border-darkBorder flex flex-col z-20 shrink-0 h-full relative">
+            
+            <!-- App Header -->
+            <div class="p-4 bg-lightBg dark:bg-darkBg flex items-center justify-between border-b border-lightBorder/50 dark:border-darkBorder/50">
+                <h1 class="text-xl font-bold tracking-tight text-black dark:text-white" id="screenTitle">Bokonbaev</h1>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightCard dark:bg-darkCard hover:opacity-80 flex items-center justify-center text-gray-700 dark:text-gray-300 transition" title="Переключить тему">
+                        <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="px-4 py-2 bg-lightBg dark:bg-darkBg">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Поиск чатов" class="w-full pl-10 pr-4 py-2.5 bg-lightCard dark:bg-darkCard text-black dark:text-white placeholder-gray-500 text-sm rounded-2xl focus:outline-none border border-transparent border-lightBorder dark:border-darkBorder">
+                </div>
+            </div>
+
+            <!-- TAB VIEWS CONTENT AREA -->
+            <div class="flex-1 overflow-y-auto relative pb-20">
+                
+                <!-- VIEW 1: CHATS LIST -->
+                <div id="viewChats" class="divide-y divide-lightBorder dark:divide-darkBorder/30">
+                    <!-- Чаты подгружаются через JavaScript -->
+                </div>
+
+                <!-- VIEW 2: CONTACTS -->
+                <div id="viewContacts" class="hidden divide-y divide-lightBorder dark:divide-darkBorder/30 p-2">
+                    <div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Все пользователи</div>
+                    <div id="contactsList" class="space-y-1">
+                        <!-- Контакты подгружаются через JavaScript -->
+                    </div>
+                </div>
+
+                <!-- VIEW 3: PROFILE -->
+                <div id="viewProfile" class="hidden p-4 space-y-4">
+                    <div class="bg-lightCard dark:bg-darkCard rounded-3xl p-6 border border-lightBorder dark:border-darkBorder flex flex-col items-center text-center relative">
+                        <div id="profileAvatarBig" class="w-24 h-24 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-3xl font-bold text-black dark:text-white overflow-hidden shadow-lg mb-3">
+                            U
+                        </div>
+                        <h2 id="profileName" class="text-xl font-bold text-black dark:text-white">Имя</h2>
+                        <p id="profileUsername" class="text-xs text-gray-400 mt-0.5">@username</p>
+                        <p id="profilePhoneDisplay" class="text-xs text-blue-500 mt-1 font-medium">+996 555 123 456</p>
+
+                        <div class="w-full mt-6 space-y-2 text-left">
+                            <button onclick="openEditProfileModal()" class="w-full py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-2xl text-sm font-semibold flex items-center justify-between transition">
+                                <span><i class="fa-solid fa-pen-to-square mr-2"></i> Редактировать профиль</span>
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                            <button onclick="logout()" class="w-full py-3 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl text-sm font-medium flex items-center justify-between transition">
+                                <span><i class="fa-solid fa-right-from-bracket mr-2"></i> Выйти из аккаунта</span>
+                            </button>
+                            <button onclick="clearAllData()" class="w-full py-3 px-4 bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 rounded-2xl text-xs font-medium flex items-center justify-between transition">
+                                <span><i class="fa-solid fa-trash mr-2"></i> Очистить кэш и данные</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- CREATE GROUP BUTTON -->
+            <button onclick="openCreateGroupModal()" class="absolute bottom-20 right-5 w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center text-xl z-30 hover:scale-105 active:scale-95 transition" title="Создать группу">
+                <i class="fa-solid fa-users text-lg"></i>
+            </button>
+
+            <!-- BOTTOM NAVIGATION BAR -->
+            <div class="absolute bottom-3 left-3 right-3 bg-lightCard/95 dark:bg-[#1e1e20]/90 backdrop-blur-xl border border-lightBorder dark:border-darkBorder rounded-full p-1.5 flex items-center justify-around z-30 shadow-2xl">
+                <button onclick="switchTab('chats')" id="navChats" class="flex flex-col items-center justify-center px-4 py-1.5 rounded-full text-xs font-medium text-white nav-active transition">
+                    <i class="fa-solid fa-message text-base mb-0.5"></i>
+                    <span>Чаты</span>
+                </button>
+                <button onclick="switchTab('contacts')" id="navContacts" class="flex flex-col items-center justify-center px-4 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-black dark:hover:text-white transition">
+                    <i class="fa-solid fa-address-book text-base mb-0.5"></i>
+                    <span>Контакты</span>
+                </button>
+                <button onclick="switchTab('profile')" id="navProfile" class="flex flex-col items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-gray-400 hover:text-black dark:hover:text-white transition">
+                    <div id="navProfileAvatar" class="w-6 h-6 rounded-full bg-gray-600 overflow-hidden flex items-center justify-center text-[10px] text-white font-bold mb-0.5">
+                        P
+                    </div>
+                    <span>Профиль</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- RIGHT / CHAT WINDOW -->
+        <main id="chatWindow" class="fixed inset-0 z-40 md:static md:flex-1 flex flex-col h-full bg-lightBg dark:bg-darkBg hidden md:flex">
+            
+            <!-- Chat Header -->
+            <div id="chatHeader" class="bg-lightHeader dark:bg-darkHeader px-4 py-3 border-b border-lightBorder dark:border-darkBorder flex items-center justify-between shadow-sm z-10">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="openActiveChatDetails()">
+                    <button onclick="event.stopPropagation(); closeMobileChat()" class="p-2 text-gray-400 hover:text-black dark:hover:text-white rounded-full transition" title="Назад к чатам">
+                        <i class="fa-solid fa-arrow-left text-lg"></i>
+                    </button>
+
+                    <div id="activeChatAvatar" class="w-10 h-10 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-black dark:text-white font-bold text-sm overflow-hidden shrink-0">
+                        ?
+                    </div>
+
+                    <div class="overflow-hidden">
+                        <h3 id="activeChatTitle" class="font-semibold text-black dark:text-white truncate text-base leading-tight">Выберите чат</h3>
+                        <p id="activeChatSubtitle" class="text-xs text-gray-400 truncate mt-0.5">Bokonbaev Messenger</p>
+                    </div>
+                </div>
+
+                <button id="clearChatBtn" onclick="clearChat()" class="p-2 text-gray-400 hover:text-red-500 rounded-full transition hidden" title="Очистить историю группы">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div id="messagesArea" class="flex-1 overflow-y-auto p-4 chat-bg-pattern-dark dark:chat-bg-pattern-dark space-y-3">
+                <div class="flex items-center justify-center h-full text-gray-500 text-sm">
+                    Выберите «Общий чат Bokonbaev» или пользователя для начала общения
+                </div>
+            </div>
+
+            <!-- Message Input Bar -->
+            <div class="bg-lightHeader dark:bg-darkHeader p-3 border-t border-lightBorder dark:border-darkBorder flex items-center gap-2 z-10">
+                <input type="text" id="messageInput" onkeydown="handleInputKey(event)" placeholder="Написать сообщение..." class="flex-1 py-3 px-4 bg-lightInput dark:bg-darkInput text-black dark:text-white text-sm rounded-2xl focus:outline-none border border-lightBorder dark:border-darkBorder">
+
+                <button onclick="sendMessage()" class="w-11 h-11 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center font-bold shadow-lg transition transform active:scale-95 shrink-0">
+                    <i class="fa-solid fa-arrow-up text-base"></i>
+                </button>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- EDIT PROFILE MODAL -->
+    <div id="editProfileModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-lightCard dark:bg-darkCard w-full max-w-sm rounded-3xl border border-lightBorder dark:border-darkBorder p-6 flex flex-col space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-lightBorder dark:border-darkBorder pb-3">
+                <h3 class="font-bold text-lg text-black dark:text-white">Редактировать профиль</h3>
+                <button onclick="closeEditProfileModal()" class="text-gray-400 hover:text-black dark:hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex flex-col items-center gap-3">
+                <div id="editAvatarPreview" class="w-20 h-20 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-2xl font-bold text-black dark:text-white overflow-hidden shadow-inner">
+                    U
+                </div>
+                <label class="cursor-pointer text-xs font-semibold text-blue-500 hover:underline">
+                    Изменить фото профиля
+                    <input type="file" id="editAvatarInput" accept="image/*" onchange="previewEditAvatar(event)" class="hidden">
+                </label>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Имя и Фамилия</label>
+                <input type="text" id="editFullNameInput" placeholder="Имя и Фамилия" class="w-full px-4 py-2.5 rounded-2xl bg-lightInput dark:bg-darkInput text-black dark:text-white border border-lightBorder dark:border-darkBorder text-sm focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Логин (@username)</label>
+                <input type="text" id="editUsernameInput" placeholder="@username" class="w-full px-4 py-2.5 rounded-2xl bg-lightInput dark:bg-darkInput text-black dark:text-white border border-lightBorder dark:border-darkBorder text-sm focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Номер телефона</label>
+                <input type="tel" id="editPhoneInput" oninput="formatPhoneInput(this)" placeholder="+996 555 123 456" class="w-full px-4 py-2.5 rounded-2xl bg-lightInput dark:bg-darkInput text-black dark:text-white border border-lightBorder dark:border-darkBorder text-sm focus:outline-none">
+            </div>
+
+            <button onclick="submitSaveProfile()" class="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black font-bold rounded-2xl shadow transition active:scale-[0.98]">
+                Сохранить изменения
+            </button>
+        </div>
+    </div>
+
+    <!-- CREATE GROUP MODAL -->
+    <div id="createGroupModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-lightCard dark:bg-darkCard w-full max-w-sm rounded-3xl border border-lightBorder dark:border-darkBorder p-6 flex flex-col space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-lightBorder dark:border-darkBorder pb-3">
+                <h3 class="font-bold text-lg text-black dark:text-white">Создать группу</h3>
+                <button onclick="closeCreateGroupModal()" class="text-gray-400 hover:text-black dark:hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex flex-col items-center gap-3">
+                <div id="groupAvatarPreview" class="w-20 h-20 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-2xl font-bold text-gray-400 overflow-hidden shadow-inner border border-dashed border-gray-500">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+                <label class="cursor-pointer text-xs font-semibold text-blue-500 hover:underline">
+                    Загрузить фото группы
+                    <input type="file" id="groupAvatarInput" accept="image/*" onchange="previewGroupAvatar(event)" class="hidden">
+                </label>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Название группы</label>
+                <input type="text" id="groupNameInput" placeholder="Например: Друзья" class="w-full px-4 py-2.5 rounded-2xl bg-lightInput dark:bg-darkInput text-black dark:text-white border border-lightBorder dark:border-darkBorder text-sm focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Никнейм / Юзернейм группы</label>
+                <input type="text" id="groupUsernameInput" placeholder="@my_group" class="w-full px-4 py-2.5 rounded-2xl bg-lightInput dark:bg-darkInput text-black dark:text-white border border-lightBorder dark:border-darkBorder text-sm focus:outline-none">
+            </div>
+
+            <button onclick="submitCreateGroup()" class="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black font-bold rounded-2xl shadow transition active:scale-[0.98]">
+                Создать группу
+            </button>
+        </div>
+    </div>
+
+    <!-- MESSAGE CONTEXT ACTION MODAL (DELETE FOR ALL / DELETE FOR ME) -->
+    <div id="msgContextModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4" onclick="closeMsgContextModal()">
+        <div class="bg-lightCard dark:bg-darkCard w-full max-w-sm rounded-3xl border border-lightBorder dark:border-darkBorder p-5 flex flex-col space-y-3 shadow-2xl transform transition-all" onclick="event.stopPropagation()">
+            <div class="text-center pb-2 border-b border-lightBorder dark:border-darkBorder/50">
+                <h4 class="font-bold text-base text-black dark:text-white">Действия с сообщением</h4>
+                <p id="msgContextPreview" class="text-xs text-gray-400 truncate mt-1 italic px-4"></p>
+            </div>
+
+            <button id="btnDeleteForAll" onclick="executeDeleteForAll()" class="w-full py-3 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold rounded-2xl text-sm flex items-center justify-start gap-3 transition">
+                <i class="fa-solid fa-trash-can text-base w-5"></i>
+                <span>Удалить у всех</span>
+            </button>
+
+            <button onclick="executeDeleteForMe()" class="w-full py-3 px-4 bg-gray-500/10 hover:bg-gray-500/20 text-gray-700 dark:text-gray-200 font-semibold rounded-2xl text-sm flex items-center justify-start gap-3 transition">
+                <i class="fa-solid fa-eye-slash text-base w-5"></i>
+                <span>Удалить у меня</span>
+            </button>
+
+            <button onclick="closeMsgContextModal()" class="w-full py-2.5 bg-transparent hover:bg-gray-200 dark:hover:bg-darkBorder text-gray-400 font-medium rounded-2xl text-sm transition">
+                Отмена
+            </button>
+        </div>
+    </div>
+
+    <!-- TELEGRAM-STYLE USER PROFILE MODAL -->
+    <div id="userProfileModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeUserProfileModal()">
+        <div class="bg-lightCard dark:bg-darkCard w-full max-w-sm rounded-3xl border border-lightBorder dark:border-darkBorder overflow-hidden shadow-2xl flex flex-col relative" onclick="event.stopPropagation()">
+            
+            <button onclick="closeUserProfileModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center z-10 hover:bg-black/60 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="p-6 bg-gradient-to-b from-black/20 to-transparent flex flex-col items-center text-center">
+                <div id="modalUserAvatar" class="w-28 h-28 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-4xl font-bold text-black dark:text-white overflow-hidden shadow-xl mb-4 border-2 border-white/20">
+                    U
+                </div>
+                <h3 id="modalUserName" class="text-xl font-bold text-black dark:text-white leading-snug">Имя Пользователя</h3>
+                <span class="text-xs text-green-500 font-medium flex items-center gap-1 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> в сети
+                </span>
+            </div>
+
+            <div class="px-6 pb-6 space-y-4">
+                <div class="bg-lightBg dark:bg-darkInput/50 rounded-2xl p-3.5 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-at text-gray-400 text-base w-5"></i>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">Имя пользователя</p>
+                            <p id="modalUserHandle" class="text-sm font-semibold text-black dark:text-white">@username</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 border-t border-lightBorder dark:border-darkBorder/40 pt-2.5">
+                        <i class="fa-solid fa-phone text-gray-400 text-base w-5"></i>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">Телефон</p>
+                            <p id="modalUserPhone" class="text-sm font-semibold text-black dark:text-white">+996 555 000 000</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modalUserActions" class="space-y-2">
+                    <button id="modalStartChatBtn" class="w-full py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-2xl shadow flex items-center justify-center gap-2 transition active:scale-95">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Написать сообщение</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUP DETAILS / JOIN MODAL -->
+    <div id="groupPreviewModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeGroupPreviewModal()">
+        <div class="bg-lightCard dark:bg-darkCard w-full max-w-sm rounded-3xl border border-lightBorder dark:border-darkBorder overflow-hidden shadow-2xl flex flex-col relative" onclick="event.stopPropagation()">
+            <button onclick="closeGroupPreviewModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center z-10 hover:bg-black/60 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="p-6 bg-gradient-to-b from-indigo-500/20 to-transparent flex flex-col items-center text-center">
+                <div id="groupPreviewAvatar" class="w-28 h-28 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-4xl font-bold text-black dark:text-white overflow-hidden shadow-xl mb-4 border-2 border-white/20">
+                    G
+                </div>
+                <h3 id="groupPreviewTitle" class="text-xl font-bold text-black dark:text-white leading-snug">Название Группы</h3>
+                <p id="groupPreviewHandle" class="text-xs text-gray-400 mt-0.5">@group_username</p>
+                <span id="groupPreviewMembersCount" class="text-xs text-blue-400 font-medium mt-2 bg-blue-500/10 px-3 py-1 rounded-full">
+                    0 участников
+                </span>
+            </div>
+
+            <div class="p-6 space-y-3">
+                <button id="btnJoinGroup" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Войти в группу</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 pointer-events-none space-y-2"></div>
+
+    <script>
+        const KEY_USERS = 'bokonbaev_users_app';
+        const KEY_CURRENT = 'bokonbaev_current_id';
+        const KEY_MSGS = 'bokonbaev_messages_app';
+        const KEY_GROUPS = 'bokonbaev_groups_app';
+        const KEY_THEME = 'bokonbaev_theme_pref';
+        const KEY_HIDDEN_MSGS = 'bokonbaev_hidden_msgs_app';
+        const KEY_READ_MSGS = 'bokonbaev_read_msgs_app';
+
+        const GENERAL_CHAT_ID = 'chat_general_bokonbaev';
+
+        let users = [];
+        let currentUser = null;
+        let activeChatUserId = null;
+        let messages = [];
+        let groups = [];
+        let hiddenMessageIds = [];
+        let readMessageIds = [];
+
+        let newGroupAvatarBase64 = null;
+        let editAvatarBase64 = null;
+        let selectedTargetMsgId = null;
+        let selectedPreviewGroup = null;
+        let longPressTimer = null;
+
+        function formatPhoneInput(input) {
+            let val = input.value;
+            if (!val.startsWith('+996')) {
+                input.value = '+996 ';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadData();
+            checkAuth();
+
+            // Автообновление и отслеживание новых сообщений
+            window.addEventListener('storage', (e) => {
+                const prevMsgsCount = messages.length;
+                loadData();
+                renderCurrentTab();
+                if (activeChatUserId) renderMessages();
+
+                if (e.key === KEY_MSGS) {
+                    const newMsgs = JSON.parse(e.newValue || '[]');
+                    if (newMsgs.length > prevMsgsCount) {
+                        const lastMsg = newMsgs[newMsgs.length - 1];
+                        if (lastMsg && currentUser && lastMsg.senderId !== currentUser.id) {
+                            handleIncomingNotification(lastMsg);
+                        }
+                    }
+                }
+            });
+        });
+
+        // Web Audio API Звуковой сигнал при новом сообщении
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            } catch(e) {}
+        }
+
+        function showNotificationToast(title, body, onClick) {
+            playNotificationSound();
+
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = "bg-lightCard dark:bg-darkCard border border-lightBorder dark:border-darkBorder text-black dark:text-white p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto transform transition-all duration-300 opacity-0 translate-y-[-10px] cursor-pointer hover:scale-[1.02]";
+            
+            toast.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 text-base font-bold">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h5 class="text-xs font-bold truncate">${escapeHTML(title)}</h5>
+                    <p class="text-xs text-gray-400 truncate mt-0.5">${escapeHTML(body)}</p>
+                </div>
+            `;
+
+            toast.onclick = () => {
+                if (onClick) onClick();
+                toast.remove();
+            };
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-[-10px]');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function handleIncomingNotification(msg) {
+            let title = "Новое сообщение";
+            const sender = users.find(u => u.id === msg.senderId);
+            const senderName = sender ? sender.fullName : "Пользователь";
+
+            let isCurrentChat = false;
+            if (activeChatUserId) {
+                if (msg.chatId === GENERAL_CHAT_ID && activeChatUserId === GENERAL_CHAT_ID) isCurrentChat = true;
+                else if (msg.chatId === activeChatUserId) isCurrentChat = true;
+                else if (currentUser && msg.chatId === getChatId(currentUser.id, activeChatUserId)) isCurrentChat = true;
+            }
+
+            if (isCurrentChat) {
+                // Если мы уже в этом чате, просто помечаем как прочитанное
+                markMessageAsRead(msg.id);
+                return;
+            }
+
+            if (msg.chatId === GENERAL_CHAT_ID) {
+                title = `Общий чат (${senderName})`;
+            } else if (msg.chatId.startsWith('grp_')) {
+                const grp = groups.find(g => g.id === msg.chatId);
+                title = grp ? `${grp.name} (${senderName})` : senderName;
+            } else {
+                title = senderName;
+            }
+
+            showNotificationToast(title, msg.text, () => {
+                if (msg.chatId === GENERAL_CHAT_ID) {
+                    openGeneralChat();
+                } else if (msg.chatId.startsWith('grp_')) {
+                    const grp = groups.find(g => g.id === msg.chatId);
+                    if (grp) openGroupChat(grp);
+                } else if (sender) {
+                    startChatWith(sender);
+                }
+            });
+        }
+
+        function markMessageAsRead(msgId) {
+            if (!readMessageIds.includes(msgId)) {
+                readMessageIds.push(msgId);
+                saveData();
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem(KEY_THEME) || 'dark';
+            applyTheme(savedTheme);
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem(KEY_THEME, newTheme);
+        }
+
+        function applyTheme(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                if (icon) icon.className = "fa-solid fa-sun text-sm";
+            } else {
+                document.documentElement.classList.remove('dark');
+                if (icon) icon.className = "fa-solid fa-moon text-sm";
+            }
+        }
+
+        function loadData() {
+            try {
+                users = JSON.parse(localStorage.getItem(KEY_USERS)) || [];
+                messages = JSON.parse(localStorage.getItem(KEY_MSGS)) || [];
+                groups = JSON.parse(localStorage.getItem(KEY_GROUPS)) || [];
+                hiddenMessageIds = JSON.parse(localStorage.getItem(KEY_HIDDEN_MSGS)) || [];
+                readMessageIds = JSON.parse(localStorage.getItem(KEY_READ_MSGS)) || [];
+            } catch(e) {
+                users = [];
+                messages = [];
+                groups = [];
+                hiddenMessageIds = [];
+                readMessageIds = [];
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(KEY_USERS, JSON.stringify(users));
+            localStorage.setItem(KEY_MSGS, JSON.stringify(messages));
+            localStorage.setItem(KEY_GROUPS, JSON.stringify(groups));
+            localStorage.setItem(KEY_HIDDEN_MSGS, JSON.stringify(hiddenMessageIds));
+            localStorage.setItem(KEY_READ_MSGS, JSON.stringify(readMessageIds));
+        }
+
+        function checkAuth() {
+            const currentId = localStorage.getItem(KEY_CURRENT);
+            currentUser = users.find(u => u.id === currentId);
+
+            if (!currentUser) {
+                openAuthModal();
+            } else {
+                closeAuthModal();
+                updateUserInterface();
+                switchTab('chats');
+            }
+        }
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const tabLoginBtn = document.getElementById('tabLoginBtn');
+            const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabLoginBtn.className = "flex-1 py-3 text-sm font-semibold dark:text-white text-black border-b-2 border-black dark:border-white transition";
+                tabRegisterBtn.className = "flex-1 py-3 text-sm font-semibold text-gray-400 hover:text-black dark:hover:text-white transition";
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabRegisterBtn.className = "flex-1 py-3 text-sm font-semibold dark:text-white text-black border-b-2 border-black dark:border-white transition";
+                tabLoginBtn.className = "flex-1 py-3 text-sm font-semibold text-gray-400 hover:text-black dark:hover:text-white transition";
+            }
+        }
+
+        function openAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('regFullName').value.trim();
+            const username = document.getElementById('regUsername').value.trim().replace(/^@/, '');
+            let phone = document.getElementById('regPhone').value.trim();
+            if (!phone.startsWith('+996')) {
+                phone = '+996 ' + phone.replace(/^\+?996\s?/, '');
+            }
+            const password = document.getElementById('regPassword').value;
+            const avatarInput = document.getElementById('regAvatarInput');
+
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                alert('Пользователь с таким логином уже существует!');
+                return;
+            }
+
+            const processUser = (avatarBase64) => {
+                const newUser = {
+                    id: 'usr_' + Date.now(),
+                    fullName,
+                    username,
+                    phone: phone || '+996 555 000 000',
+                    password,
+                    avatar: avatarBase64 || null
+                };
+
+                users.push(newUser);
+                currentUser = newUser;
+                saveData();
+                localStorage.setItem(KEY_CURRENT, newUser.id);
+
+                closeAuthModal();
+                updateUserInterface();
+                switchTab('chats');
+            };
+
+            if (avatarInput.files && avatarInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    processUser(e.target.result);
+                };
+                reader.readAsDataURL(avatarInput.files[0]);
+            } else {
+                processUser(null);
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById('loginUsername').value.trim().replace(/^@/, '');
+            const password = document.getElementById('loginPassword').value;
+
+            const found = users.find(u => 
+                (u.username.toLowerCase() === inputVal.toLowerCase() || u.fullName.toLowerCase() === inputVal.toLowerCase()) 
+                && u.password === password
+            );
+
+            if (!found) {
+                alert('Неверный логин или пароль!');
+                return;
+            }
+
+            currentUser = found;
+            localStorage.setItem(KEY_CURRENT, found.id);
+            closeAuthModal();
+            updateUserInterface();
+            switchTab('chats');
+        }
+
+        function logout() {
+            if (confirm('Выйти из аккаунта?')) {
+                localStorage.removeItem(KEY_CURRENT);
+                currentUser = null;
+                openAuthModal();
+            }
+        }
+
+        function updateUserInterface() {
+            if (!currentUser) return;
+
+            document.getElementById('profileName').innerText = currentUser.fullName;
+            document.getElementById('profileUsername').innerText = '@' + currentUser.username;
+            document.getElementById('profilePhoneDisplay').innerText = currentUser.phone || '+996 555 000 000';
+            
+            const bigAvatar = document.getElementById('profileAvatarBig');
+            if (currentUser.avatar) {
+                bigAvatar.innerHTML = `<img src="${currentUser.avatar}" class="w-full h-full object-cover">`;
+            } else {
+                bigAvatar.innerText = currentUser.fullName.charAt(0).toUpperCase();
+            }
+
+            const navAvatar = document.getElementById('navProfileAvatar');
+            if (currentUser.avatar) {
+                navAvatar.innerHTML = `<img src="${currentUser.avatar}" class="w-full h-full object-cover rounded-full">`;
+            } else {
+                navAvatar.innerText = currentUser.fullName.charAt(0).toUpperCase();
+            }
+        }
+
+        /* EDIT PROFILE MODAL */
+        function openEditProfileModal() {
+            if (!currentUser) return;
+            editAvatarBase64 = currentUser.avatar || null;
+
+            document.getElementById('editFullNameInput').value = currentUser.fullName;
+            document.getElementById('editUsernameInput').value = currentUser.username;
+            document.getElementById('editPhoneInput').value = currentUser.phone || '+996 ';
+
+            const preview = document.getElementById('editAvatarPreview');
+            if (currentUser.avatar) {
+                preview.innerHTML = `<img src="${currentUser.avatar}" class="w-full h-full object-cover">`;
+            } else {
+                preview.innerText = currentUser.fullName.charAt(0).toUpperCase();
+            }
+
+            document.getElementById('editProfileModal').classList.remove('hidden');
+            document.getElementById('editProfileModal').classList.add('flex');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('editProfileModal').classList.add('hidden');
+            document.getElementById('editProfileModal').classList.remove('flex');
+        }
+
+        function previewEditAvatar(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    editAvatarBase64 = evt.target.result;
+                    document.getElementById('editAvatarPreview').innerHTML = `<img src="${editAvatarBase64}" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function submitSaveProfile() {
+            if (!currentUser) return;
+
+            const fullName = document.getElementById('editFullNameInput').value.trim();
+            const username = document.getElementById('editUsernameInput').value.trim().replace(/^@/, '');
+            let phone = document.getElementById('editPhoneInput').value.trim();
+
+            if (!fullName || !username) {
+                alert('Имя и логин не могут быть пустыми!');
+                return;
+            }
+
+            if (username.toLowerCase() !== currentUser.username.toLowerCase()) {
+                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    alert('Этот логин уже занят другим пользователем!');
+                    return;
+                }
+            }
+
+            if (!phone.startsWith('+996')) {
+                phone = '+996 ' + phone.replace(/^\+?996\s?/, '');
+            }
+
+            currentUser.fullName = fullName;
+            currentUser.username = username;
+            currentUser.phone = phone;
+            currentUser.avatar = editAvatarBase64;
+
+            const idx = users.findIndex(u => u.id === currentUser.id);
+            if (idx !== -1) {
+                users[idx] = currentUser;
+            }
+
+            saveData();
+            updateUserInterface();
+            closeEditProfileModal();
+            renderCurrentTab();
+            if (activeChatUserId) renderMessages();
+        }
+
+        function switchTab(tabName) {
+            const views = {
+                chats: document.getElementById('viewChats'),
+                contacts: document.getElementById('viewContacts'),
+                profile: document.getElementById('viewProfile')
+            };
+
+            const navs = {
+                chats: document.getElementById('navChats'),
+                contacts: document.getElementById('navContacts'),
+                profile: document.getElementById('navProfile')
+            };
+
+            Object.keys(views).forEach(key => {
+                if (key === tabName) {
+                    views[key].classList.remove('hidden');
+                    if (navs[key]) navs[key].className = "flex flex-col items-center justify-center px-4 py-1.5 rounded-full text-xs font-medium text-white nav-active transition";
+                } else {
+                    views[key].classList.add('hidden');
+                    if (navs[key]) navs[key].className = "flex flex-col items-center justify-center px-4 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-black dark:hover:text-white transition";
+                }
+            });
+
+            if (tabName === 'chats') renderChats();
+            if (tabName === 'contacts') renderContacts();
+        }
+
+        function renderCurrentTab() {
+            if (!document.getElementById('viewChats').classList.contains('hidden')) renderChats();
+            if (!document.getElementById('viewContacts').classList.contains('hidden')) renderContacts();
+        }
+
+        function getChatId(id1, id2) {
+            return [id1, id2].sort().join('_');
+        }
+
+        function getUnreadCount(chatId) {
+            if (!currentUser) return 0;
+            return messages.filter(m => 
+                m.chatId === chatId && 
+                m.senderId !== currentUser.id && 
+                !hiddenMessageIds.includes(m.id) && 
+                !readMessageIds.includes(m.id)
+            ).length;
+        }
+
+        function renderChats() {
+            const container = document.getElementById('viewChats');
+            container.innerHTML = '';
+
+            if (!currentUser) return;
+
+            // 1. ЗАКРЕПЛЕННЫЙ ОБЩИЙ ЧАТ
+            const genMsgs = messages.filter(m => m.chatId === GENERAL_CHAT_ID && !hiddenMessageIds.includes(m.id));
+            const genLastMsg = genMsgs[genMsgs.length - 1];
+            const genUnread = getUnreadCount(GENERAL_CHAT_ID);
+
+            const genItem = document.createElement('div');
+            genItem.className = "p-3.5 flex items-center gap-3 bg-lightCard dark:bg-darkCard hover:opacity-90 cursor-pointer transition border-b border-lightBorder dark:border-darkBorder/40";
+            genItem.onclick = () => openGeneralChat();
+
+            genItem.innerHTML = `
+                <div class="w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-sm relative">
+                    <i class="fa-solid fa-users text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-baseline mb-1">
+                        <h4 class="font-bold text-sm text-black dark:text-white truncate flex items-center gap-1.5">
+                            Общий чат Bokonbaev 
+                            <i class="fa-solid fa-thumbtack text-xs text-gray-400 transform rotate-45"></i>
+                        </h4>
+                        <span class="text-[11px] text-gray-400 shrink-0">${genLastMsg ? formatTime(genLastMsg.timestamp) : ''}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-medium flex-1">
+                            ${genLastMsg ? escapeHTML(genLastMsg.text) : 'Общий чат для всех пользователей'}
+                        </p>
+                        ${genUnread > 0 ? `<span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shrink-0">${genUnread}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            container.appendChild(genItem);
+
+            // 2. ВСЕ ПУБЛИЧНЫЕ ГРУППЫ
+            groups.forEach(group => {
+                const isMember = group.members && group.members.includes(currentUser.id);
+                const groupMsgs = messages.filter(m => m.chatId === group.id && !hiddenMessageIds.includes(m.id));
+                const lastMsg = groupMsgs[groupMsgs.length - 1];
+                const unreadCount = isMember ? getUnreadCount(group.id) : 0;
+
+                const gItem = document.createElement('div');
+                gItem.className = "p-3.5 flex items-center gap-3 hover:bg-lightCard dark:hover:bg-darkCard cursor-pointer transition border-b border-lightBorder dark:border-darkBorder/20";
+                
+                gItem.onclick = () => {
+                    if (isMember) {
+                        openGroupChat(group);
+                    } else {
+                        openGroupPreviewModal(group);
+                    }
+                };
+
+                const avatarHtml = group.avatar
+                    ? `<img src="${group.avatar}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white font-bold">${group.name.charAt(0).toUpperCase()}</div>`;
+
+                gItem.innerHTML = `
+                    <div class="w-12 h-12 rounded-full bg-gray-700 text-white flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-sm relative">
+                        ${avatarHtml}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h4 class="font-semibold text-sm text-black dark:text-white truncate flex items-center gap-1.5">
+                                ${escapeHTML(group.name)}
+                                ${!isMember ? '<span class="text-[10px] bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded-md font-normal">Публичная</span>' : ''}
+                            </h4>
+                            <span class="text-[11px] text-gray-400 shrink-0">${lastMsg ? formatTime(lastMsg.timestamp) : ''}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
+                                ${lastMsg ? escapeHTML(lastMsg.text) : (group.username || 'Группа')}
+                            </p>
+                            ${unreadCount > 0 ? `<span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shrink-0">${unreadCount}</span>` : ''}
+                            ${!isMember ? `<span class="text-xs text-blue-400 font-medium hover:underline">Войти</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(gItem);
+            });
+
+            // 3. ЛИЧНЫЕ ДИАЛОГИ
+            const otherUsers = users.filter(u => u.id !== currentUser.id);
+
+            otherUsers.forEach(user => {
+                const chatId = getChatId(currentUser.id, user.id);
+                const userMsgs = messages.filter(m => m.chatId === chatId && !hiddenMessageIds.includes(m.id));
+                const lastMsg = userMsgs[userMsgs.length - 1];
+                const unreadCount = getUnreadCount(chatId);
+
+                const item = document.createElement('div');
+                item.className = "p-3.5 flex items-center gap-3 hover:bg-lightCard dark:hover:bg-darkCard cursor-pointer transition border-b border-lightBorder dark:border-darkBorder/20";
+                item.onclick = () => startChatWith(user);
+
+                const avatarHtml = user.avatar 
+                    ? `<img src="${user.avatar}" class="w-full h-full object-cover">`
+                    : user.fullName.charAt(0).toUpperCase();
+
+                item.innerHTML = `
+                    <div class="w-12 h-12 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-black dark:text-white font-bold text-base overflow-hidden shrink-0 shadow-sm relative">
+                        ${avatarHtml}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h4 class="font-semibold text-sm text-black dark:text-white truncate">${escapeHTML(user.fullName)}</h4>
+                            <span class="text-[11px] text-gray-400 shrink-0">${lastMsg ? formatTime(lastMsg.timestamp) : ''}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">${lastMsg ? escapeHTML(lastMsg.text) : 'Нажмите, чтобы открыть диалог'}</p>
+                            ${unreadCount > 0 ? `<span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shrink-0">${unreadCount}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderContacts() {
+            const container = document.getElementById('contactsList');
+            container.innerHTML = '';
+
+            if (!currentUser) return;
+
+            const otherUsers = users.filter(u => u.id !== currentUser.id);
+
+            if (otherUsers.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-gray-500 text-sm">Нет зарегистрированных пользователей</div>`;
+                return;
+            }
+
+            otherUsers.forEach(user => {
+                const item = document.createElement('div');
+                item.className = "p-3 flex items-center gap-3 hover:bg-lightCard dark:hover:bg-darkCard rounded-2xl cursor-pointer transition";
+                item.onclick = () => openUserProfile(user);
+
+                const avatarHtml = user.avatar 
+                    ? `<img src="${user.avatar}" class="w-full h-full object-cover">`
+                    : user.fullName.charAt(0).toUpperCase();
+
+                item.innerHTML = `
+                    <div class="w-11 h-11 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-black dark:text-white font-bold text-sm overflow-hidden shrink-0">
+                        ${avatarHtml}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold text-sm text-black dark:text-white truncate">${escapeHTML(user.fullName)}</h4>
+                        <p class="text-xs text-gray-500 truncate">@${escapeHTML(user.username)}</p>
+                    </div>
+                    <button onclick="event.stopPropagation(); startChatWithById('${user.id}')" class="p-2 text-blue-500 hover:bg-blue-500/10 rounded-full transition" title="Написать">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        /* GROUP PREVIEW & JOIN MODAL */
+        function openGroupPreviewModal(group) {
+            selectedPreviewGroup = group;
+            document.getElementById('groupPreviewTitle').innerText = group.name;
+            document.getElementById('groupPreviewHandle').innerText = group.username || '@group';
+            
+            const membersCount = group.members ? group.members.length : 1;
+            document.getElementById('groupPreviewMembersCount').innerText = `${membersCount} участников`;
+
+            const avatarContainer = document.getElementById('groupPreviewAvatar');
+            if (group.avatar) {
+                avatarContainer.innerHTML = `<img src="${group.avatar}" class="w-full h-full object-cover">`;
+            } else {
+                avatarContainer.innerText = group.name.charAt(0).toUpperCase();
+            }
+
+            const btnJoin = document.getElementById('btnJoinGroup');
+            btnJoin.onclick = () => joinGroup(group);
+
+            document.getElementById('groupPreviewModal').classList.remove('hidden');
+            document.getElementById('groupPreviewModal').classList.add('flex');
+        }
+
+        function closeGroupPreviewModal() {
+            document.getElementById('groupPreviewModal').classList.add('hidden');
+            document.getElementById('groupPreviewModal').classList.remove('flex');
+            selectedPreviewGroup = null;
+        }
+
+        function joinGroup(group) {
+            if (!currentUser) return;
+            
+            if (!group.members) group.members = [group.creatorId];
+            if (!group.members.includes(currentUser.id)) {
+                group.members.push(currentUser.id);
+                saveData();
+            }
+
+            closeGroupPreviewModal();
+            renderChats();
+            openGroupChat(group);
+        }
+
+        function openGeneralChat() {
+            activeChatUserId = GENERAL_CHAT_ID;
+            showChatWindow('Общий чат Bokonbaev', 'Все участники', '<i class="fa-solid fa-users text-sm"></i>');
+        }
+
+        function openGroupChat(group) {
+            activeChatUserId = group.id;
+            const avatarContent = group.avatar 
+                ? `<img src="${group.avatar}" class="w-full h-full object-cover">`
+                : group.name.charAt(0).toUpperCase();
+            showChatWindow(group.name, group.username || 'Группа', avatarContent);
+        }
+
+        function startChatWith(user) {
+            activeChatUserId = user.id;
+            const avatar = user.avatar ? `<img src="${user.avatar}" class="w-full h-full object-cover">` : user.fullName.charAt(0).toUpperCase();
+            showChatWindow(user.fullName, `@${user.username}`, avatar);
+        }
+
+        function startChatWithById(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) startChatWith(user);
+        }
+
+        function showChatWindow(title, subtitle, avatarContent) {
+            const chatWindow = document.getElementById('chatWindow');
+            
+            chatWindow.classList.remove('hidden');
+            chatWindow.classList.add('flex');
+
+            document.getElementById('activeChatTitle').innerText = title;
+            document.getElementById('activeChatSubtitle').innerText = subtitle;
+            document.getElementById('activeChatAvatar').innerHTML = avatarContent;
+
+            const clearBtn = document.getElementById('clearChatBtn');
+            if (activeChatUserId && activeChatUserId.startsWith('grp_')) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            // Отмечаем сообщения в чате как прочитанные
+            markCurrentChatMessagesAsRead();
+            renderMessages();
+            renderChats();
+        }
+
+        function markCurrentChatMessagesAsRead() {
+            if (!currentUser || !activeChatUserId) return;
+            let chatId = activeChatUserId;
+            if (activeChatUserId !== GENERAL_CHAT_ID && !activeChatUserId.startsWith('grp_')) {
+                chatId = getChatId(currentUser.id, activeChatUserId);
+            }
+
+            const unreadMsgs = messages.filter(m => m.chatId === chatId && m.senderId !== currentUser.id);
+            unreadMsgs.forEach(m => {
+                if (!readMessageIds.includes(m.id)) readMessageIds.push(m.id);
+            });
+            saveData();
+        }
+
+        function closeMobileChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.classList.add('hidden');
+            chatWindow.classList.remove('flex');
+            activeChatUserId = null;
+        }
+
+        function openActiveChatDetails() {
+            if (!activeChatUserId) return;
+            
+            if (activeChatUserId.startsWith('usr_')) {
+                const user = users.find(u => u.id === activeChatUserId);
+                if (user) openUserProfile(user);
+            } else if (activeChatUserId.startsWith('grp_')) {
+                const grp = groups.find(g => g.id === activeChatUserId);
+                if (grp) openGroupPreviewModal(grp);
+            }
+        }
+
+        function openUserProfile(user) {
+            if (!user) return;
+
+            document.getElementById('modalUserName').innerText = user.fullName;
+            document.getElementById('modalUserHandle').innerText = '@' + user.username;
+            document.getElementById('modalUserPhone').innerText = user.phone || '+996 555 123 456';
+
+            const avatarContainer = document.getElementById('modalUserAvatar');
+            if (user.avatar) {
+                avatarContainer.innerHTML = `<img src="${user.avatar}" class="w-full h-full object-cover">`;
+            } else {
+                avatarContainer.innerText = user.fullName.charAt(0).toUpperCase();
+            }
+
+            const startBtn = document.getElementById('modalStartChatBtn');
+            startBtn.onclick = () => {
+                closeUserProfileModal();
+                startChatWith(user);
+            };
+
+            document.getElementById('userProfileModal').classList.remove('hidden');
+            document.getElementById('userProfileModal').classList.add('flex');
+        }
+
+        function closeUserProfileModal() {
+            document.getElementById('userProfileModal').classList.add('hidden');
+            document.getElementById('userProfileModal').classList.remove('flex');
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messagesArea');
+            container.innerHTML = '';
+
+            if (!currentUser || !activeChatUserId) return;
+
+            let chatId = activeChatUserId;
+            if (activeChatUserId !== GENERAL_CHAT_ID && !activeChatUserId.startsWith('grp_')) {
+                chatId = getChatId(currentUser.id, activeChatUserId);
+            }
+
+            const chatMsgs = messages.filter(m => m.chatId === chatId && !hiddenMessageIds.includes(m.id));
+
+            if (chatMsgs.length === 0) {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500 text-sm">Сообщений пока нет. Напишите первым!</div>`;
+                return;
+            }
+
+            chatMsgs.forEach(msg => {
+                const isMine = msg.senderId === currentUser.id;
+                const senderUser = users.find(u => u.id === msg.senderId);
+                const senderName = senderUser ? senderUser.fullName : 'Пользователь';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `flex items-end gap-2 my-1.5 group relative ${isMine ? 'justify-end' : 'justify-start'}`;
+
+                let avatarMarkup = '';
+                if (!isMine) {
+                    const avatarSrc = senderUser && senderUser.avatar 
+                        ? `<img src="${senderUser.avatar}" class="w-full h-full object-cover">`
+                        : (senderUser ? senderUser.fullName.charAt(0).toUpperCase() : '?');
+
+                    avatarMarkup = `
+                        <div onclick="openUserProfileById('${msg.senderId}')" class="w-8 h-8 rounded-full bg-lightBorder dark:bg-darkBorder flex items-center justify-center text-xs font-bold text-black dark:text-white overflow-hidden shrink-0 cursor-pointer shadow-sm mb-0.5 hover:opacity-80 transition" title="${escapeHTML(senderName)}">
+                            ${avatarSrc}
+                        </div>
+                    `;
+                }
+
+                const showAuthorName = (activeChatUserId === GENERAL_CHAT_ID || activeChatUserId.startsWith('grp_')) && !isMine;
+
+                const bubbleHtml = `
+                    <div id="msg_bubble_${msg.id}" 
+                         oncontextmenu="handleMsgContextMenu(event, '${msg.id}')"
+                         ontouchstart="handleTouchStart(event, '${msg.id}')"
+                         ontouchend="handleTouchEnd(event)"
+                         ontouchmove="handleTouchEnd(event)"
+                         class="msg-bubble-target max-w-[85%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-md relative cursor-pointer select-none transition-transform active:scale-[0.99] ${
+                            isMine 
+                            ? 'bg-darkBubbleSent dark:bg-darkBubbleSent bg-lightBubbleSent text-black dark:text-white rounded-br-xs pr-12' 
+                            : 'bg-lightBubbleRecv dark:bg-darkBubbleRecv text-black dark:text-white rounded-bl-xs border border-lightBorder dark:border-darkBorder pr-12'
+                        }">
+                        
+                        ${showAuthorName ? `<div onclick="openUserProfileById('${msg.senderId}')" class="text-xs font-bold text-blue-400 hover:underline cursor-pointer mb-1">${escapeHTML(senderName)}</div>` : ''}
+                        
+                        <div class="whitespace-pre-wrap break-words">${escapeHTML(msg.text)}</div>
+                        
+                        <div class="absolute bottom-1 right-2.5 flex items-center gap-1 select-none">
+                            <span class="text-[10px] text-gray-400 font-medium">${formatTime(msg.timestamp)}</span>
+                        </div>
+                    </div>
+                `;
+
+                if (isMine) {
+                    wrapper.innerHTML = bubbleHtml;
+                } else {
+                    wrapper.innerHTML = avatarMarkup + bubbleHtml;
+                }
+
+                container.appendChild(wrapper);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function openUserProfileById(userId) {
+            const u = users.find(x => x.id === userId);
+            if (u) openUserProfile(u);
+        }
+
+        function handleMsgContextMenu(e, msgId) {
+            e.preventDefault();
+            openMsgContextModal(msgId);
+        }
+
+        function handleTouchStart(e, msgId) {
+            longPressTimer = setTimeout(() => {
+                openMsgContextModal(msgId);
+            }, 500);
+        }
+
+        function handleTouchEnd(e) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function openMsgContextModal(msgId) {
+            selectedTargetMsgId = msgId;
+            const msg = messages.find(m => m.id === msgId);
+            if (!msg) return;
+
+            document.getElementById('msgContextPreview').innerText = `«${msg.text}»`;
+
+            const btnDeleteForAll = document.getElementById('btnDeleteForAll');
+            if (msg.senderId === currentUser.id) {
+                btnDeleteForAll.classList.remove('hidden');
+                btnDeleteForAll.classList.add('flex');
+            } else {
+                btnDeleteForAll.classList.add('hidden');
+                btnDeleteForAll.classList.remove('flex');
+            }
+
+            document.getElementById('msgContextModal').classList.remove('hidden');
+            document.getElementById('msgContextModal').classList.add('flex');
+        }
+
+        function closeMsgContextModal() {
+            document.getElementById('msgContextModal').classList.add('hidden');
+            document.getElementById('msgContextModal').classList.remove('flex');
+            selectedTargetMsgId = null;
+        }
+
+        function executeDeleteForAll() {
+            if (!selectedTargetMsgId) return;
+            messages = messages.filter(m => m.id !== selectedTargetMsgId);
+            saveData();
+            closeMsgContextModal();
+            renderMessages();
+            renderChats();
+        }
+
+        function executeDeleteForMe() {
+            if (!selectedTargetMsgId) return;
+            if (!hiddenMessageIds.includes(selectedTargetMsgId)) {
+                hiddenMessageIds.push(selectedTargetMsgId);
+            }
+            saveData();
+            closeMsgContextModal();
+            renderMessages();
+            renderChats();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text || !currentUser || !activeChatUserId) return;
+
+            let chatId = activeChatUserId;
+            if (activeChatUserId !== GENERAL_CHAT_ID && !activeChatUserId.startsWith('grp_')) {
+                chatId = getChatId(currentUser.id, activeChatUserId);
+            }
+
+            const newMsg = {
+                id: 'm_' + Date.now(),
+                chatId,
+                senderId: currentUser.id,
+                text,
+                timestamp: Date.now()
+            };
+
+            messages.push(newMsg);
+            if (!readMessageIds.includes(newMsg.id)) {
+                readMessageIds.push(newMsg.id);
+            }
+            saveData();
+
+            input.value = '';
+            renderMessages();
+            renderChats();
+        }
+
+        function handleInputKey(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function clearChat() {
+            if (activeChatUserId && confirm('Очистить историю сообщений в этом чате?')) {
+                let chatId = activeChatUserId;
+                if (activeChatUserId !== GENERAL_CHAT_ID && !activeChatUserId.startsWith('grp_')) {
+                    chatId = getChatId(currentUser.id, activeChatUserId);
+                }
+                messages = messages.filter(m => m.chatId !== chatId);
+                saveData();
+                renderMessages();
+                renderChats();
+            }
+        }
+
+        function openCreateGroupModal() {
+            newGroupAvatarBase64 = null;
+            document.getElementById('groupAvatarPreview').innerHTML = `<i class="fa-solid fa-camera"></i>`;
+            document.getElementById('groupNameInput').value = '';
+            document.getElementById('groupUsernameInput').value = '';
+
+            document.getElementById('createGroupModal').classList.remove('hidden');
+            document.getElementById('createGroupModal').classList.add('flex');
+        }
+
+        function closeCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.add('hidden');
+            document.getElementById('createGroupModal').classList.remove('flex');
+        }
+
+        function previewGroupAvatar(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    newGroupAvatarBase64 = evt.target.result;
+                    document.getElementById('groupAvatarPreview').innerHTML = `<img src="${newGroupAvatarBase64}" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function submitCreateGroup() {
+            const nameInput = document.getElementById('groupNameInput');
+            const usernameInput = document.getElementById('groupUsernameInput');
+            
+            const name = nameInput.value.trim();
+            let groupAlias = usernameInput.value.trim();
+
+            if (!name) {
+                alert('Укажите название группы!');
+                return;
+            }
+
+            if (groupAlias && !groupAlias.startsWith('@')) {
+                groupAlias = '@' + groupAlias;
+            }
+
+            const newGroup = {
+                id: 'grp_' + Date.now(),
+                name,
+                username: groupAlias || '@group',
+                avatar: newGroupAvatarBase64,
+                creatorId: currentUser.id,
+                members: [currentUser.id] // Создатель автоматически состоит в группе
+            };
+
+            groups.push(newGroup);
+            saveData();
+
+            closeCreateGroupModal();
+            renderChats();
+            openGroupChat(newGroup);
+        }
+
+        function clearAllData() {
+            if (confirm('Удалить всю историю сообщений и очистить данные приложения?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const d = new Date(timestamp);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHTML(str) {
+            return str ? str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            ) : '';
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const activeView = !document.getElementById('viewChats').classList.contains('hidden') ? 'chats' : 'contacts';
+
+            if (activeView === 'chats') {
+                const items = document.getElementById('viewChats').children;
+                Array.from(items).forEach(item => {
+                    item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+                });
+            } else {
+                const items = document.getElementById('contactsList').children;
+                Array.from(items).forEach(item => {
+                    item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+                });
+            }
+        }
+    </script>
+</body>
+</html>
